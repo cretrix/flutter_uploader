@@ -10,6 +10,7 @@ import androidx.work.NetworkType;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
 import androidx.work.WorkRequest;
+import androidx.work.ExistingWorkPolicy;
 import com.bluechilli.flutteruploader.plugin.StatusListener;
 import com.google.gson.Gson;
 import io.flutter.plugin.common.MethodCall;
@@ -113,11 +114,11 @@ public class MethodCallHandlerImpl implements MethodCallHandler {
       items.add(FileItem.fromJson(file));
     }
 
-    WorkRequest request =
+    OneTimeWorkRequest request =
         buildRequest(
             new UploadTask(url, method, items, headers, parameters, connectionTimeout, false, tag));
     WorkManager.getInstance(context)
-        .enqueue(request)
+        .enqueueUniqueWork("uploaderunique", ExistingWorkPolicy.APPEND, request)
         .getResult()
         .addListener(
             () -> {
@@ -152,7 +153,7 @@ public class MethodCallHandlerImpl implements MethodCallHandler {
       return;
     }
 
-    WorkRequest request =
+    OneTimeWorkRequest request =
         buildRequest(
             new UploadTask(
                 url,
@@ -164,7 +165,7 @@ public class MethodCallHandlerImpl implements MethodCallHandler {
                 true,
                 tag));
     WorkManager.getInstance(context)
-        .enqueue(request)
+        .enqueueUniqueWork("uploaderunique", ExistingWorkPolicy.APPEND, request)
         .getResult()
         .addListener(
             () -> {
@@ -176,6 +177,19 @@ public class MethodCallHandlerImpl implements MethodCallHandler {
                   });
             },
             workManagerExecutor);
+      // WorkManager.getInstance(context)
+      // .enqueue(request)
+      // .getResult()
+      // .addListener(
+      //     () -> {
+      //       String taskId = request.getId().toString();
+      //       mainExecutor.execute(
+      //           () -> {
+      //             result.success(taskId);
+      //             statusListener.onUpdateProgress(taskId, UploadStatus.ENQUEUED, 0);
+      //           });
+      //     },
+      //     workManagerExecutor);
   }
 
   private void cancel(MethodCall call, MethodChannel.Result result) {
@@ -205,7 +219,7 @@ public class MethodCallHandlerImpl implements MethodCallHandler {
             workManagerExecutor);
   }
 
-  private WorkRequest buildRequest(UploadTask task) {
+  private OneTimeWorkRequest buildRequest(UploadTask task) {
     Gson gson = new Gson();
 
     Data.Builder dataBuilder =
